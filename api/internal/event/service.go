@@ -36,6 +36,8 @@ func (s *Service) PublishToQueue(c context.Context, b io.ReadCloser, dbclient mo
 		return nil, err
 	}
 
+	// TODO: Publish to queue using RabbitMQ
+
 	return &Response{
 		Message: fmt.Sprintf("Published to queue: %s", body.Username),
 	}, nil
