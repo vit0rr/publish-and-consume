@@ -1,13 +1,12 @@
-## Short Spot
+## Publish and Consume Events
 
-Short Spot is a URL shortening service that allows users to shorten long URLs into short, easy-to-remember links.
+Project to show how to publish and consume events using RabbitMQ with GoLang.
 
 ## Features
 
 #### Backend
-- Shorten long URLs into short links
-- Redirect short links to the original URLs
-- Auth API token
+- Publish events to RabbitMQ
+- Consume events from RabbitMQ
 
 ## How to run
 ```bash
@@ -28,5 +27,4 @@ docker compose up
 
 ```bash
 go run cmd/api/main.go 
-# or configure your GoPath and run
 ```
