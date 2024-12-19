@@ -3,24 +3,24 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 
+	"github.com/joho/godotenv"
 	"github.com/vit0rr/publish-and-consume/api/server"
-	_ "github.com/vit0rr/publish-and-consume/cmd/api/docs"
 	"github.com/vit0rr/publish-and-consume/config"
+	_ "github.com/vit0rr/publish-and-consume/docs"
+	"github.com/vit0rr/publish-and-consume/pkg/database"
 	"github.com/vit0rr/publish-and-consume/pkg/deps"
 	"github.com/vit0rr/publish-and-consume/pkg/log"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"github.com/vit0rr/publish-and-consume/pkg/queue"
 )
 
-// @title Transcription Service API
+// @title Publish and Consume
 // @version 1.0
-// @description Pulish data to RabbitMQ
+// @description Publish and Consume with RabbitMQ and MongoDB
 // @termsOfService http://swagger.io/terms/
 
 // @contact.name API Support
@@ -30,8 +30,11 @@ import (
 // @license.name Apache 2.0
 // @license.url http://www.apache.org/licenses/LICENSE-2.0.html
 func main() {
-	ctx := context.Background()
-	// Parse config file location from command-line flag
+	godotenv.Load()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	var configPath string
 	flag.StringVar(&configPath, "config", "", "Path to the config file (see config/config_local.hcl for an example)")
 	flag.Parse()
@@ -40,56 +43,88 @@ func main() {
 	if configPath == "" {
 		cfg = config.DefaultConfig()
 	} else if configPath != "" {
-		parsedConfig, err := config.GetConfig(configPath)
+		parseConfig, err := config.GetConfig(configPath)
 		if err != nil {
-			fmt.Printf("Error parsing config file: %v\n", err)
+			log.Error(ctx, "Error parsing config file", "error", err)
 			os.Exit(1)
 		}
-		cfg = parsedConfig
+
+		cfg = parseConfig
 	}
 
 	logLevel, err := log.ParseLogLevel(cfg.Server.LogLevel)
 	if err != nil {
-		fmt.Printf("Error parsing log level: %v\n`Info` is applied as a default\n", err)
+		log.Error(ctx, "Error parsing log level", "error", err)
 		logLevel = slog.LevelInfo
 	}
 	log.New(ctx, logLevel)
 
-	mongoClient, err := mongo.Connect(ctx, options.Client().ApplyURI(cfg.API.Mongo.Dsn))
+	// implement rabbitmq connection
+	amqpConn, err := queue.NewRabbitMQClient(ctx, cfg)
 	if err != nil {
-		log.Error(ctx, "unable to parse database connection", log.ErrAttr(err))
-		panic(err)
+		log.Error(ctx, "❌ Failed to connect to RabbitMQ", log.ErrAttr(err))
+		os.Exit(1)
 	}
 
+	log.Info(ctx, "✅ Connected to RabbitMQ")
+
+	// create mongo client
+	mongoClient, err := database.NewMongoClient(ctx, cfg)
+	if err != nil {
+		log.Error(ctx, "❌ Unable to parse database connection", log.ErrAttr(err))
+		os.Exit(1)
+	}
+
+	log.Info(ctx, "✅ Connected to MongoDB")
+
 	defer func() {
-		if err := mongoClient.Disconnect(context.TODO()); err != nil {
-			log.Error(ctx, "unable to disconnect from MongoDB", log.ErrAttr(err))
-			panic(err)
+		if err := mongoClient.Disconnect(ctx); err != nil {
+			log.Error(ctx, "❌ Failed to disconnect from MongoDB", log.ErrAttr(err))
+			os.Exit(1)
 		}
 	}()
 
-	dependencies := deps.New(cfg, mongoClient)
+	// create queues
+	if err := queue.DeclareQueuesAndExanghes(amqpConn); err != nil {
+		log.Error(ctx, "❌ Failed to declare queues", log.ErrAttr(err))
+		os.Exit(1)
+	}
 
-	httpServer := server.New(ctx, dependencies, mongoClient.Database("shortspot"))
+	log.Info(ctx, "✅ Created queues")
 
-	// Handle graceful shutdown
+	defer func() {
+		if err := amqpConn.Close(); err != nil {
+			log.Error(ctx, "❌ Failed to close RabbitMQ connection", log.ErrAttr(err))
+			os.Exit(1)
+		}
+	}()
+
+	dependencies := deps.New(cfg, mongoClient, amqpConn)
+
+	httpServer := server.New(ctx, dependencies, mongoClient.Database("db_events"), amqpConn)
+
 	idleConnsClosed := make(chan struct{})
 	go func() {
 		sigint := make(chan os.Signal, 1)
 		signal.Notify(sigint, os.Interrupt)
 		<-sigint
 
-		// We received an interrupt signal, shut down.
 		if err := httpServer.Shutdown(ctx); err != nil {
 			log.Error(ctx, "unexpected error during server shutdown", log.ErrAttr(err))
 		}
 		close(idleConnsClosed)
 	}()
 
-	log.Info(ctx, "Starting API at", log.AnyAttr("bind_addr", cfg.Server.BindAddr))
+	if err := queue.StartConsumers(ctx, cancel, cfg, mongoClient, amqpConn, dependencies); err != nil {
+		log.Error(ctx, "failed to start consumers", log.ErrAttr(err))
+		os.Exit(1)
+	}
+
+	log.Info(ctx, "🌎 Starting API at", log.AnyAttr("bind_addr", cfg.Server.BindAddr))
 	if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		log.Error(ctx, "error starting server", log.ErrAttr(err))
+		log.Error(ctx, "❌ Error starting server", log.ErrAttr(err))
 	}
 
 	<-idleConnsClosed
+
 }
