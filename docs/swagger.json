@@ -1,8 +1,8 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "Pulish data to RabbitMQ",
-        "title": "Transcription Service API",
+        "description": "Publish and Consume with RabbitMQ and MongoDB",
+        "title": "Publish and Consume",
         "termsOfService": "http://swagger.io/terms/",
         "contact": {
             "name": "API Support",
@@ -16,59 +16,24 @@
         "version": "1.0"
     },
     "paths": {
-        "/short-url": {
+        "/": {
             "post": {
-                "description": "Short URL",
-                "summary": "Short URL",
+                "description": "Publish to queue",
+                "summary": "Publish to queue",
                 "parameters": [
                     {
-                        "description": "URL to short",
+                        "description": "Publish to queue body",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/urlshort.PublishToQueueBody"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Successfully processed transcriptions",
-                        "schema": {
-                            "$ref": "#/definitions/urlshort.Response"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request body",
-                        "schema": {
-                            "$ref": "#/definitions/urlshort.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error during processing",
-                        "schema": {
-                            "$ref": "#/definitions/urlshort.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/{id}": {
-            "get": {
-                "description": "Redirect",
-                "summary": "Redirect",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successfully processed transcriptions",
+                        "description": "Successfully published to queue",
                         "schema": {
                             "$ref": "#/definitions/urlshort.Response"
                         }
@@ -90,13 +55,20 @@
         }
     },
     "definitions": {
+        "urlshort.PublishToQueueBody": {
+            "type": "object",
+            "properties": {
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
         "urlshort.Response": {
             "type": "object",
             "properties": {
                 "message": {
                     "type": "string"
-                },
-                "shortenedUrl": {}
+                }
             }
         }
     }

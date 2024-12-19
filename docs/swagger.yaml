@@ -1,59 +1,40 @@
 definitions:
+  urlshort.PublishToQueueBody:
+    properties:
+      username:
+        type: string
+    type: object
   urlshort.Response:
     properties:
       message:
         type: string
-      shortenedUrl: {}
     type: object
 info:
   contact:
     email: support@swagger.io
     name: API Support
     url: http://www.swagger.io/support
-  description: Pulish data to RabbitMQ
+  description: Publish and Consume with RabbitMQ and MongoDB
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
   termsOfService: http://swagger.io/terms/
-  title: Transcription Service API
+  title: Publish and Consume
   version: "1.0"
 paths:
-  /{id}:
-    get:
-      description: Redirect
-      parameters:
-      - description: ID
-        in: path
-        name: id
-        required: true
-        type: string
-      responses:
-        "200":
-          description: Successfully processed transcriptions
-          schema:
-            $ref: '#/definitions/urlshort.Response'
-        "400":
-          description: Invalid request body
-          schema:
-            $ref: '#/definitions/urlshort.Response'
-        "500":
-          description: Internal server error during processing
-          schema:
-            $ref: '#/definitions/urlshort.Response'
-      summary: Redirect
-  /short-url:
+  /:
     post:
-      description: Short URL
+      description: Publish to queue
       parameters:
-      - description: URL to short
+      - description: Publish to queue body
         in: body
         name: body
         required: true
         schema:
-          type: string
+          $ref: '#/definitions/urlshort.PublishToQueueBody'
       responses:
         "200":
-          description: Successfully processed transcriptions
+          description: Successfully published to queue
           schema:
             $ref: '#/definitions/urlshort.Response'
         "400":
@@ -64,5 +45,5 @@ paths:
           description: Internal server error during processing
           schema:
             $ref: '#/definitions/urlshort.Response'
-      summary: Short URL
+      summary: Publish to queue
 swagger: "2.0"

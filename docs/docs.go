@@ -24,59 +24,24 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/short-url": {
+        "/": {
             "post": {
-                "description": "Short URL",
-                "summary": "Short URL",
+                "description": "Publish to queue",
+                "summary": "Publish to queue",
                 "parameters": [
                     {
-                        "description": "URL to short",
+                        "description": "Publish to queue body",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/urlshort.PublishToQueueBody"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Successfully processed transcriptions",
-                        "schema": {
-                            "$ref": "#/definitions/urlshort.Response"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request body",
-                        "schema": {
-                            "$ref": "#/definitions/urlshort.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error during processing",
-                        "schema": {
-                            "$ref": "#/definitions/urlshort.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/{id}": {
-            "get": {
-                "description": "Redirect",
-                "summary": "Redirect",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successfully processed transcriptions",
+                        "description": "Successfully published to queue",
                         "schema": {
                             "$ref": "#/definitions/urlshort.Response"
                         }
@@ -98,13 +63,20 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "urlshort.PublishToQueueBody": {
+            "type": "object",
+            "properties": {
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
         "urlshort.Response": {
             "type": "object",
             "properties": {
                 "message": {
                     "type": "string"
-                },
-                "shortenedUrl": {}
+                }
             }
         }
     }
@@ -116,8 +88,8 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "",
 	BasePath:         "",
 	Schemes:          []string{},
-	Title:            "Transcription Service API",
-	Description:      "Pulish data to RabbitMQ",
+	Title:            "Publish and Consume",
+	Description:      "Publish and Consume with RabbitMQ and MongoDB",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

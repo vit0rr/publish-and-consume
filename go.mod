@@ -6,7 +6,7 @@ require (
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/hashicorp/hcl/v2 v2.22.0
 	github.com/joho/godotenv v1.5.1
-	github.com/matoous/go-nanoid v1.5.1
+	github.com/rabbitmq/amqp091-go v1.10.0
 	github.com/segmentio/ksuid v1.0.4
 	github.com/swaggo/http-swagger v1.3.4
 	github.com/swaggo/swag v1.16.4

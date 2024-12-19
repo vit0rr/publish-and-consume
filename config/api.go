@@ -9,7 +9,12 @@ import (
 
 // API related config
 type API struct {
-	Mongo Mongo `hcl:"mongo,block"`
+	RabbitMQ RabbitMQ `hcl:"rabbitmq,block"`
+	Mongo    Mongo    `hcl:"mongo,block"`
+}
+
+type RabbitMQ struct {
+	Uri string `hcl:"uri"`
 }
 
 type Mongo struct {
@@ -21,11 +26,14 @@ func GetDefaultAPIConfig() API {
 
 	return API{
 		Mongo: Mongo{
-			Dsn: fmt.Sprintf("mongodb+srv://%s:%s@%s/?retryWrites=true&w=majority&appName=%s",
-				os.Getenv("MONGODB_USER"),
-				os.Getenv("MONGODB_PASS"),
-				os.Getenv("MONGODB_HOST"),
-				os.Getenv("MONGODB_APPNAME"),
+			Dsn: os.Getenv("DATABASE_URL"),
+		},
+		RabbitMQ: RabbitMQ{
+			Uri: fmt.Sprintf("amqp://%s:%s@%s:%s",
+				os.Getenv("RABBIT_MQ_USER"),
+				os.Getenv("RABBIT_MQ_PASS"),
+				os.Getenv("RABBIT_MQ_HOST"),
+				os.Getenv("RABBIT_MQ_PORT"),
 			),
 		},
 	}
