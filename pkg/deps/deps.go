@@ -3,11 +3,9 @@ package deps
 import (
 	"context"
 	"fmt"
-	"os"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/vit0rr/publish-and-consume/config"
-	"github.com/vit0rr/publish-and-consume/pkg/log"
 	"github.com/vit0rr/publish-and-consume/shared"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -130,23 +128,6 @@ func DeclareQueuesAndExanghes(cnn *amqp.Connection) error {
 		return fmt.Errorf("failed to bind queue %s to exchange %s: %w",
 			shared.EventsDataDQL, shared.EventsDLT, err)
 	}
-
-	return nil
-}
-
-func StartConsumers(ctx context.Context, cancel context.CancelFunc, cfg config.Config, mongo *mongo.Client, amqpConn *amqp.Connection, dependencies *Deps) error {
-	eventsConsumer, err := NewConsumer(dependencies, amqpConn, mongo.Database("db_events"), cfg, ctx)
-	if err != nil {
-		log.Error(ctx, "failed to create events consumer", log.ErrAttr(err))
-		os.Exit(1)
-	}
-
-	go func() {
-		if err := eventsConsumer.Start(ctx); err != nil {
-			log.Error(ctx, "consumer error", log.ErrAttr(err))
-			cancel()
-		}
-	}()
 
 	return nil
 }

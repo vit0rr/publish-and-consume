@@ -1,4 +1,4 @@
-package urlshort
+package event
 
 import (
 	"context"
