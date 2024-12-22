@@ -12,10 +12,8 @@ import (
 	"github.com/vit0rr/publish-and-consume/api/server"
 	"github.com/vit0rr/publish-and-consume/config"
 	_ "github.com/vit0rr/publish-and-consume/docs"
-	"github.com/vit0rr/publish-and-consume/pkg/database"
 	"github.com/vit0rr/publish-and-consume/pkg/deps"
 	"github.com/vit0rr/publish-and-consume/pkg/log"
-	"github.com/vit0rr/publish-and-consume/pkg/queue"
 )
 
 // @title Publish and Consume
@@ -60,7 +58,7 @@ func main() {
 	log.New(ctx, logLevel)
 
 	// implement rabbitmq connection
-	amqpConn, err := queue.NewRabbitMQClient(ctx, cfg)
+	amqpConn, err := deps.NewRabbitMQClient(ctx, cfg)
 	if err != nil {
 		log.Error(ctx, "❌ Failed to connect to RabbitMQ", log.ErrAttr(err))
 		os.Exit(1)
@@ -69,7 +67,7 @@ func main() {
 	log.Info(ctx, "✅ Connected to RabbitMQ")
 
 	// create mongo client
-	mongoClient, err := database.NewMongoClient(ctx, cfg)
+	mongoClient, err := deps.NewMongoClient(ctx, cfg)
 	if err != nil {
 		log.Error(ctx, "❌ Unable to parse database connection", log.ErrAttr(err))
 		os.Exit(1)
@@ -85,7 +83,7 @@ func main() {
 	}()
 
 	// create queues
-	if err := queue.DeclareQueuesAndExanghes(amqpConn); err != nil {
+	if err := deps.DeclareQueuesAndExanghes(amqpConn); err != nil {
 		log.Error(ctx, "❌ Failed to declare queues", log.ErrAttr(err))
 		os.Exit(1)
 	}
@@ -115,7 +113,7 @@ func main() {
 		close(idleConnsClosed)
 	}()
 
-	if err := queue.StartConsumers(ctx, cancel, cfg, mongoClient, amqpConn, dependencies); err != nil {
+	if err := deps.StartConsumers(ctx, cancel, cfg, mongoClient, amqpConn, dependencies); err != nil {
 		log.Error(ctx, "failed to start consumers", log.ErrAttr(err))
 		os.Exit(1)
 	}
