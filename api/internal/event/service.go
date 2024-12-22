@@ -1,4 +1,4 @@
-package urlshort
+package event
 
 import (
 	"context"
@@ -8,6 +8,8 @@ import (
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/vit0rr/publish-and-consume/pkg/deps"
+	"github.com/vit0rr/publish-and-consume/pkg/log"
+	"github.com/vit0rr/publish-and-consume/shared"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -36,7 +38,27 @@ func (s *Service) PublishToQueue(c context.Context, b io.ReadCloser, dbclient mo
 		return nil, err
 	}
 
-	// TODO: Publish to queue using RabbitMQ
+	ch, err := s.amqpConn.Channel()
+	if err != nil {
+		log.Error(c, "Failed to open a channel", log.ErrAttr(err))
+		return nil, err
+	}
+	defer ch.Close()
+
+	err = ch.Publish(
+		shared.EventsTopic,
+		shared.EventsTopic,
+		false,
+		false,
+		amqp.Publishing{
+			ContentType: "application/json",
+			Body:        []byte(body.Username),
+		},
+	)
+	if err != nil {
+		log.Error(c, "Failed to publish to queue", log.ErrAttr(err))
+		return nil, err
+	}
 
 	return &Response{
 		Message: fmt.Sprintf("Published to queue: %s", body.Username),

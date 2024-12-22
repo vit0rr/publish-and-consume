@@ -1,4 +1,4 @@
-package urlshort
+package event
 
 type Urls struct {
 	OriginalUrl  string `bson:"original_url"`

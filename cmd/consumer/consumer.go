@@ -1,7 +1,8 @@
-package events
+package consumer
 
 import (
 	"context"
+	"os"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/vit0rr/publish-and-consume/config"
@@ -28,6 +29,23 @@ func NewConsumer(deps *deps.Deps, amqpConn *amqp.Connection, db *mongo.Database,
 		RabbitMQ: amqpConn,
 		Mongo:    db,
 	}, nil
+}
+
+func StartConsumers(ctx context.Context, cancel context.CancelFunc, cfg config.Config, mongo *mongo.Client, amqpConn *amqp.Connection, dependencies *deps.Deps) error {
+	eventsConsumer, err := NewConsumer(dependencies, amqpConn, mongo.Database("db_events"), cfg, ctx)
+	if err != nil {
+		log.Error(ctx, "failed to create events consumer", log.ErrAttr(err))
+		os.Exit(1)
+	}
+
+	go func() {
+		if err := eventsConsumer.Start(ctx); err != nil {
+			log.Error(ctx, "consumer error", log.ErrAttr(err))
+			cancel()
+		}
+	}()
+
+	return nil
 }
 
 func (c *Consumer) Start(ctx context.Context) error {
