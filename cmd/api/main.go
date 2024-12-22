@@ -10,6 +10,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/vit0rr/publish-and-consume/api/server"
+	"github.com/vit0rr/publish-and-consume/cmd/consumer"
 	"github.com/vit0rr/publish-and-consume/config"
 	_ "github.com/vit0rr/publish-and-consume/docs"
 	"github.com/vit0rr/publish-and-consume/pkg/deps"
@@ -113,7 +114,7 @@ func main() {
 		close(idleConnsClosed)
 	}()
 
-	if err := deps.StartConsumers(ctx, cancel, cfg, mongoClient, amqpConn, dependencies); err != nil {
+	if err := consumer.StartConsumers(ctx, cancel, cfg, mongoClient, amqpConn, dependencies); err != nil {
 		log.Error(ctx, "failed to start consumers", log.ErrAttr(err))
 		os.Exit(1)
 	}

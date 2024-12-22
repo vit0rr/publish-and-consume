@@ -1,4 +1,4 @@
-package deps
+package consumer
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/vit0rr/publish-and-consume/config"
+	"github.com/vit0rr/publish-and-consume/pkg/deps"
 	"github.com/vit0rr/publish-and-consume/pkg/log"
 	"github.com/vit0rr/publish-and-consume/shared"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -17,12 +18,12 @@ type Message struct {
 }
 
 type Consumer struct {
-	deps     *Deps
+	deps     *deps.Deps
 	RabbitMQ *amqp.Connection
 	Mongo    *mongo.Database
 }
 
-func NewConsumer(deps *Deps, amqpConn *amqp.Connection, db *mongo.Database, config config.Config, ctx context.Context) (*Consumer, error) {
+func NewConsumer(deps *deps.Deps, amqpConn *amqp.Connection, db *mongo.Database, config config.Config, ctx context.Context) (*Consumer, error) {
 	return &Consumer{
 		deps:     deps,
 		RabbitMQ: amqpConn,
@@ -30,7 +31,7 @@ func NewConsumer(deps *Deps, amqpConn *amqp.Connection, db *mongo.Database, conf
 	}, nil
 }
 
-func StartConsumers(ctx context.Context, cancel context.CancelFunc, cfg config.Config, mongo *mongo.Client, amqpConn *amqp.Connection, dependencies *Deps) error {
+func StartConsumers(ctx context.Context, cancel context.CancelFunc, cfg config.Config, mongo *mongo.Client, amqpConn *amqp.Connection, dependencies *deps.Deps) error {
 	eventsConsumer, err := NewConsumer(dependencies, amqpConn, mongo.Database("db_events"), cfg, ctx)
 	if err != nil {
 		log.Error(ctx, "failed to create events consumer", log.ErrAttr(err))
